@@ -1,32 +1,46 @@
-# React + TypeScript + Vite
+# Tickety
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A full-screen order number display for a coffee shop. The barista types an order number on a USB keypad and presses Enter. The number appears on the big "Now serving" tile. Typing a number that is already on screen removes it.
 
-Currently, two official plugins are available:
+- Orders wait in line with no timer. Only the order on the big tile counts down (`stageSeconds`).
+- When the countdown ends the order moves to "Past orders" (oldest dropped after `maxPastOrders`).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Settings
 
-## React Compiler
+Edit `src/config.json`, then rebuild. The values are baked in at build time.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Key | Meaning |
+|---|---|
+| `stageSeconds` | How long each order stays on the big tile |
+| `maxPastOrders` | Length of the past orders list |
+| `servingColumns` | Columns of small tiles under the big tile |
+| `servingLabel`, `pastLabel` | Column headings |
+| `showTimer`, `showInput` | Show the countdown / the typed-number box (a hidden input still receives the keypad) |
+| `colors` | `background`, `text`, `accent`, `accentText`, `border` (any CSS colour) |
 
-## Expanding the Oxlint configuration
+## Develop
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+npm install
+npm run dev        # in the browser, with hot reload
+npm run desktop    # build, then open it in Electron
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Release
+
+Releases are built by GitHub Actions. In the repo go to **Actions → Release → Run workflow**.
+
+Each run bumps the minor version (first release is `0.1.0`), builds for Raspberry Pi (linux arm64: `.deb` and AppImage) and macOS (arm64 `.dmg`), commits the new version to `package.json`, tags it `vX.Y.0`, and attaches the installers to a GitHub Release.
+
+## Install on the Raspberry Pi
+
+Download the `.deb` from the latest release and install it:
+
+```
+gh release download --repo hercobezuidenhout/tickety --pattern '*.deb'
+sudo apt install ./Tickety-*.deb
+```
+
+`apt install ./file.deb` installs a local package and pulls in any libraries it needs. Afterwards Tickety appears in the desktop applications menu.
+
+The macOS build is not code-signed. On first open, right-click the app and choose **Open**.

@@ -1,0 +1,112 @@
+name: Release
+
+# Manually triggered. Each run bumps the minor version (first release is 0.1.0),
+# builds the desktop app for Raspberry Pi (linux arm64) and macOS (arm64), tags
+# the commit, and publishes a GitHub Release with the installers attached.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed to see existing tags
+
+      - id: next
+        run: |
+          latest=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+          if [ -z "$latest" ]; then
+            next="0.1.0"
+          else
+            IFS=. read -r major minor _ <<< "${latest#v}"
+            next="${major}.$((minor + 1)).0"
+          fi
+          echo "Latest tag: ${latest:-none}, next version: $next"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-24.04-arm
+            name: linux-arm64
+            builder_args: --linux deb AppImage --arm64
+          - os: macos-latest
+            name: macos-arm64
+            builder_args: --mac dmg --arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Make package.json carry the release version so installer names and
+      # .deb metadata match the tag. Not committed here; the release job does that.
+      - run: npm version "${{ needs.version.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - run: npm run build
+
+      # electron-builder needs a system fpm to build arm64 .deb packages.
+      - name: Install fpm
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev build-essential
+          sudo gem install fpm
+
+      - name: Package
+        run: npx electron-builder ${{ matrix.builder_args }} --publish never
+        env:
+          USE_SYSTEM_FPM: ${{ runner.os == 'Linux' && 'true' || 'false' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false" # macOS build is unsigned
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            release/*.deb
+            release/*.AppImage
+            release/*.dmg
+          if-no-files-found: error
+
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      # Only now, after both builds succeeded, record the version in git.
+      - name: Commit version bump and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          git add package.json package-lock.json
+          git diff --cached --quiet || git commit -m "chore(release): v$VERSION"
+          git tag "v$VERSION"
+          git push origin "HEAD:${{ github.ref_name }}" "v$VERSION"
+
+      - name: Create GitHub Release
+        run: gh release create "v$VERSION" artifacts/* --title "v$VERSION" --generate-notes

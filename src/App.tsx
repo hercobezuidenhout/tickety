@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { config } from './config'
 
-const { expiryMs, maxPastOrders, colors } = config
+const { stageMs, maxPastOrders, colors } = config
 
-type Order = { number: string; addedAt: number }
+type Order = { number: string; stageSince?: number }
 
-const formatRemaining = (order: Order, now: number) => {
-  const secs = Math.max(0, Math.ceil((order.addedAt + expiryMs - now) / 1000))
+// Stamp the order that is now first in line with the moment it reached the stage.
+const promote = (list: Order[], now: number): Order[] =>
+  list.length > 0 && list[0].stageSince === undefined
+    ? [{ ...list[0], stageSince: now }, ...list.slice(1)]
+    : list
+
+const formatMs = (ms: number) => {
+  const secs = Math.max(0, Math.ceil(ms / 1000))
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
 }
 
@@ -17,14 +23,15 @@ function App() {
   const [pastOrders, setPastOrders] = useState<Order[]>([])
   const [now, setNow] = useState(Date.now())
 
+  // Orders wait in line with no timer. Only the one on the big stage counts down.
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now()
       setNow(now)
-      const expired = orders.filter((o) => now - o.addedAt >= expiryMs)
-      if (expired.length === 0) return
-      setOrders((prev) => prev.filter((o) => now - o.addedAt < expiryMs))
-      setPastOrders((prev) => [...prev, ...expired].slice(-maxPastOrders))
+      const [hero, ...rest] = orders
+      if (!hero || now < hero.stageSince! + stageMs) return
+      setOrders(promote(rest, now))
+      setPastOrders((prev) => [...prev, hero].slice(-maxPastOrders))
     }, 1000)
     return () => clearInterval(id)
   }, [orders])
@@ -33,12 +40,14 @@ function App() {
     e.preventDefault()
     const number = value.trim()
     if (!number) return
+    const now = Date.now()
+    setNow(now)
     const exists = [...orders, ...pastOrders].some((o) => o.number === number)
     if (exists) {
-      setOrders((prev) => prev.filter((o) => o.number !== number))
+      setOrders((prev) => promote(prev.filter((o) => o.number !== number), now))
       setPastOrders((prev) => prev.filter((o) => o.number !== number))
     } else {
-      setOrders((prev) => [...prev, { number, addedAt: Date.now() }])
+      setOrders((prev) => promote([...prev, { number }], now))
     }
     setValue('')
   }
@@ -63,7 +72,7 @@ function App() {
             {hero.number}
             {config.showTimer && (
               <span className="absolute right-4 bottom-3 text-2xl font-semibold tabular-nums">
-                {formatRemaining(hero, now)}
+                {formatMs(hero.stageSince! + stageMs - now)}
               </span>
             )}
           </div>
@@ -76,16 +85,11 @@ function App() {
         >
           {rest.map((o) => (
             <div
-              key={o.addedAt + o.number}
-              className="relative rounded-lg px-2 pt-4 pb-8 text-center text-6xl font-bold"
+              key={o.number}
+              className="relative rounded-lg px-2 py-4 text-center text-6xl font-bold"
               style={{ backgroundColor: colors.accent, color: colors.accentText }}
             >
               {o.number}
-              {config.showTimer && (
-                <span className="absolute right-2 bottom-1 text-base font-semibold tabular-nums">
-                  {formatRemaining(o, now)}
-                </span>
-              )}
             </div>
           ))}
         </div>
@@ -96,7 +100,7 @@ function App() {
         <ul className="flex flex-col gap-3">
           {pastOrders.map((o) => (
             <li
-              key={o.addedAt + o.number}
+              key={o.number}
               className="rounded-lg border-2 px-6 py-3 text-4xl font-bold"
               style={{ borderColor: colors.border }}
             >

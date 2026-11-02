@@ -1,0 +1,16 @@
+{
+  "stageSeconds": 60,
+  "maxPastOrders": 8,
+  "servingColumns": 5,
+  "servingLabel": "Now serving",
+  "pastLabel": "Past orders",
+  "showTimer": true,
+  "showInput": true,
+  "colors": {
+    "background": "#ffffff",
+    "text": "#0f172a",
+    "accent": "#34d399",
+    "accentText": "#ffffff",
+    "border": "#e2e8f0"
+  }
+}

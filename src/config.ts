@@ -1,34 +1,36 @@
-const env = import.meta.env
+import json from './config.json'
 
-const text = (value: string | undefined, fallback: string) =>
-  value && value.trim() !== '' ? value : fallback
+// Values come from config.json at build time. Anything missing or invalid
+// falls back to the defaults below.
+const raw: Record<string, unknown> & { colors?: Record<string, unknown> } = json
 
-const positiveNumber = (value: string | undefined, fallback: number) => {
-  const parsed = Number(value)
-  return value && Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
-}
+const text = (value: unknown, fallback: string) =>
+  typeof value === 'string' && value.trim() !== '' ? value : fallback
 
-const flag = (value: string | undefined, fallback: boolean) =>
-  value === undefined || value.trim() === ''
-    ? fallback
-    : value.trim().toLowerCase() !== 'false'
+const positiveNumber = (value: unknown, fallback: number) =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : fallback
+
+const flag = (value: unknown, fallback: boolean) =>
+  typeof value === 'boolean' ? value : fallback
 
 export const config = {
-  expiryMs: positiveNumber(env.VITE_EXPIRY_SECONDS, 5 * 60) * 1000,
-  maxPastOrders: Math.floor(positiveNumber(env.VITE_MAX_PAST_ORDERS, 8)),
-  servingColumns: Math.floor(positiveNumber(env.VITE_SERVING_COLUMNS, 5)),
+  stageMs: positiveNumber(raw.stageSeconds, 60) * 1000,
+  maxPastOrders: Math.floor(positiveNumber(raw.maxPastOrders, 8)),
+  servingColumns: Math.floor(positiveNumber(raw.servingColumns, 5)),
 
-  servingLabel: text(env.VITE_SERVING_LABEL, 'Now serving'),
-  pastLabel: text(env.VITE_PAST_LABEL, 'Past orders'),
+  servingLabel: text(raw.servingLabel, 'Now serving'),
+  pastLabel: text(raw.pastLabel, 'Past orders'),
 
-  showTimer: flag(env.VITE_SHOW_TIMER, true),
-  showInput: flag(env.VITE_SHOW_INPUT, true),
+  showTimer: flag(raw.showTimer, true),
+  showInput: flag(raw.showInput, true),
 
   colors: {
-    background: text(env.VITE_COLOR_BACKGROUND, '#ffffff'),
-    text: text(env.VITE_COLOR_TEXT, '#0f172a'),
-    accent: text(env.VITE_COLOR_ACCENT, '#34d399'),
-    accentText: text(env.VITE_COLOR_ACCENT_TEXT, '#ffffff'),
-    border: text(env.VITE_COLOR_BORDER, '#e2e8f0'),
+    background: text(raw.colors?.background, '#ffffff'),
+    text: text(raw.colors?.text, '#0f172a'),
+    accent: text(raw.colors?.accent, '#34d399'),
+    accentText: text(raw.colors?.accentText, '#ffffff'),
+    border: text(raw.colors?.border, '#e2e8f0'),
   },
 }
