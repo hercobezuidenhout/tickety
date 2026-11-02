@@ -1,7 +1,8 @@
 name: Release
 
 # Manually triggered. Each run bumps the minor version (first release is 0.1.0),
-# builds the desktop app for Raspberry Pi (linux arm64) and macOS (arm64), tags
+# builds the desktop app for Raspberry Pi (linux arm64), Linux PCs (x64) and macOS
+# (arm64), tags
 # the commit, and publishes a GitHub Release with the installers attached.
 on:
   workflow_dispatch:
@@ -40,9 +41,15 @@ jobs:
           - os: ubuntu-24.04-arm
             name: linux-arm64
             builder_args: --linux deb AppImage --arm64
+            system_fpm: "true"
+          - os: ubuntu-24.04
+            name: linux-x64
+            builder_args: --linux deb AppImage --x64
+            system_fpm: "false"
           - os: macos-latest
             name: macos-arm64
             builder_args: --mac dmg --arm64
+            system_fpm: "false"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +69,7 @@ jobs:
 
       # electron-builder needs a system fpm to build arm64 .deb packages.
       - name: Install fpm
-        if: runner.os == 'Linux'
+        if: matrix.system_fpm == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ruby ruby-dev build-essential
@@ -71,7 +78,7 @@ jobs:
       - name: Package
         run: npx electron-builder ${{ matrix.builder_args }} --publish never
         env:
-          USE_SYSTEM_FPM: ${{ runner.os == 'Linux' && 'true' || 'false' }}
+          USE_SYSTEM_FPM: ${{ matrix.system_fpm }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false" # macOS build is unsigned
 
       - uses: actions/upload-artifact@v4

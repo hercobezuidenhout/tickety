@@ -50,6 +50,25 @@ To close it, press **Alt + F4**.
 
 ---
 
+## Install on a Linux laptop or PC (Intel / AMD)
+
+This is for a normal Linux computer, such as Linux Mint or Ubuntu.
+
+> **Which file do I need?** Open **Terminal** and type `uname -m`.
+> - `x86_64` means an Intel or AMD computer. Use the file ending in **`linux-amd64.deb`**.
+> - `aarch64` means a Raspberry Pi. Use the Raspberry Pi steps above.
+
+1. Go to **https://github.com/hercobezuidenhout/tickety/releases/latest** and click the **`linux-amd64.deb`** file under **Assets**.
+2. Open **Terminal** and paste:
+
+```
+sudo apt install ./Downloads/Tickety-*-linux-amd64.deb
+```
+
+3. Open **Tickety** from the menu, or type `tickety` in Terminal. Press **Alt + F4** to close it.
+
+---
+
 ## Make it start by itself (kiosk mode)
 
 This makes Tickety open full screen every time the Pi turns on. Nobody has to click anything.
@@ -90,7 +109,7 @@ After it restarts, Tickety should open on its own.
 ## Updating to a new version
 
 1. Delete the old `.deb` file from the **Downloads** folder, so only the new one is left.
-2. Do steps 1 and 2 of the install again with the new file. It replaces the old version.
+2. Do steps 1 and 2 of the install again with the new file for your computer. It replaces the old version.
 3. Restart the Pi.
 
 ## If something isn't working
@@ -149,4 +168,4 @@ npm run desktop    # builds, then opens it as a desktop app
 
 Each run adds one to the minor version (`0.1.0`, `0.2.0`, `0.3.0`, ...), builds the Raspberry Pi and Mac apps, and publishes them as a GitHub Release. The version in `package.json` is updated to match.
 
-The release workflow only builds for the Raspberry Pi (64-bit ARM) and Apple Silicon Macs.
+The release workflow builds for the Raspberry Pi (64-bit ARM), Linux PCs (Intel / AMD) and Apple Silicon Macs.
