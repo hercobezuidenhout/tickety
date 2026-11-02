@@ -53,7 +53,9 @@
     },
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.business"
+      "category": "public.app-category.business",
+      "identity": "-",
+      "hardenedRuntime": false
     }
   }
 }

@@ -43,4 +43,4 @@ sudo apt install ./Tickety-*.deb
 
 `apt install ./file.deb` installs a local package and pulls in any libraries it needs. Afterwards Tickety appears in the desktop applications menu.
 
-The macOS build is not code-signed. On first open, right-click the app and choose **Open**.
+The macOS build is ad-hoc signed, not signed with an Apple Developer ID, so macOS will say it can't verify the developer on first open. Allow it under **System Settings → Privacy & Security → Open Anyway**. If macOS instead says the app is "damaged", clear the download flag with `xattr -cr /Applications/Tickety.app`.
