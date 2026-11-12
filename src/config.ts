@@ -17,20 +17,18 @@ const flag = (value: unknown, fallback: boolean) =>
 
 export const config = {
   stageMs: positiveNumber(raw.stageSeconds, 60) * 1000,
-  maxPastOrders: Math.floor(positiveNumber(raw.maxPastOrders, 8)),
-  servingColumns: Math.floor(positiveNumber(raw.servingColumns, 5)),
+  servingColumns: Math.floor(positiveNumber(raw.servingColumns, 3)),
 
   servingLabel: text(raw.servingLabel, 'Now serving'),
-  pastLabel: text(raw.pastLabel, 'Past orders'),
 
   showTimer: flag(raw.showTimer, true),
   showInput: flag(raw.showInput, true),
 
   colors: {
-    background: text(raw.colors?.background, '#ffffff'),
+    background: text(raw.colors?.background, '#e5e7eb'),
     text: text(raw.colors?.text, '#0f172a'),
     accent: text(raw.colors?.accent, '#34d399'),
-    accentText: text(raw.colors?.accentText, '#ffffff'),
-    border: text(raw.colors?.border, '#e2e8f0'),
+    accentText: text(raw.colors?.accentText, '#022c22'),
+    border: text(raw.colors?.border, '#9ca3af'),
   },
 }
