@@ -2,7 +2,7 @@
   "stageSeconds": 180,
   "servingColumns": 3,
   "servingLabel": "Bestelling Gereed!",
-  "showTimer": false,
+  "showTimer": true,
   "showInput": true,
   "colors": {
     "background": "#e5e7eb",
