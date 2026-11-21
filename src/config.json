@@ -1,5 +1,5 @@
 {
-  "stageSeconds": 120,
+  "stageSeconds": 180,
   "servingColumns": 3,
   "servingLabel": "Bestelling Gereed!",
   "showTimer": false,

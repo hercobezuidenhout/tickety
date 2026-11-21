@@ -4,7 +4,13 @@ import Decor, { Cup } from './Decor'
 
 const { stageMs, colors } = config
 
-type Order = { number: string; since: number }
+type Order = { number: string; stageSince?: number }
+
+// Stamp the order that is now first in line with the moment it reached the stage.
+const promote = (list: Order[], now: number): Order[] =>
+  list.length > 0 && list[0].stageSince === undefined
+    ? [{ ...list[0], stageSince: now }, ...list.slice(1)]
+    : list
 
 const formatMs = (ms: number) => {
   const secs = Math.max(0, Math.ceil(ms / 1000))
@@ -17,32 +23,36 @@ function App() {
   const [orders, setOrders] = useState<Order[]>([])
   const [now, setNow] = useState(Date.now())
 
-  // Every order has its own countdown. Expired ones drop off the screen.
+  // Orders wait in line with no timer. Only the one on the big stage counts
+  // down. When it runs out it leaves the screen and the next one moves up.
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now()
       setNow(now)
       setOrders((prev) => {
-        const live = prev.filter((o) => now < o.since + stageMs)
-        return live.length === prev.length ? prev : live
+        const [hero, ...rest] = prev
+        if (!hero || now < hero.stageSince! + stageMs) return prev
+        return promote(rest, now)
       })
     }, 1000)
     return () => clearInterval(id)
   }, [])
 
-  // New orders join the back of the line. Typing a number that is already on
-  // screen restarts its countdown and keeps its place.
+  // New orders join the back of the line. Typing the number on the big stage
+  // restarts its countdown. Typing a number that is already waiting does nothing.
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     const number = value.trim()
     if (!number) return
     const now = Date.now()
     setNow(now)
-    setOrders((prev) =>
-      prev.some((o) => o.number === number)
-        ? prev.map((o) => (o.number === number ? { ...o, since: now } : o))
-        : [...prev, { number, since: now }],
-    )
+    setOrders((prev) => {
+      if (prev[0]?.number === number) {
+        return [{ ...prev[0], stageSince: now }, ...prev.slice(1)]
+      }
+      if (prev.some((o) => o.number === number)) return prev
+      return promote([...prev, { number }], now)
+    })
     setValue('')
   }
 
@@ -74,7 +84,7 @@ function App() {
             {hero.number}
             {config.showTimer && (
               <span className="absolute right-4 bottom-3 text-4xl font-bold tabular-nums">
-                {formatMs(hero.since + stageMs - now)}
+                {formatMs(hero.stageSince! + stageMs - now)}
               </span>
             )}
           </div>
@@ -92,11 +102,6 @@ function App() {
               style={{ backgroundColor: colors.accent, color: colors.accentText }}
             >
               {o.number}
-              {config.showTimer && (
-                <span className="absolute right-2 bottom-1 text-2xl font-bold tabular-nums">
-                  {formatMs(o.since + stageMs - now)}
-                </span>
-              )}
             </div>
           ))}
         </div>

@@ -7,9 +7,9 @@ The barista types the order number on a keypad and presses **Enter**. The number
 ## How it works
 
 - Type a number on the keypad and press **Enter**. It appears under **Now serving**.
-- The first number in line is shown big at the top. The others wait in small tiles below it, in the order they were typed. Every number has its own countdown, which starts when it is typed.
-- When a number's countdown ends, it leaves the screen and the next one moves up.
-- Type a number that is already on screen to restart its countdown. It keeps its place in line.
+- The first number in line is shown big at the top, with a countdown. The others wait in small tiles below it, in the order they were typed, with no countdown.
+- When the big number's countdown ends, it leaves the screen and the next one moves up and starts its own countdown.
+- Type the big number again to restart its countdown. Typing a number that is already waiting does nothing.
 
 ---
 
@@ -145,7 +145,7 @@ Edit `src/config.json`, then build again. The settings are built into the app.
 
 | Setting | What it does |
 |---|---|
-| `stageSeconds` | How long each number stays on screen |
+| `stageSeconds` | How long each number stays on the big tile |
 | `servingColumns` | How many small tiles fit in a row (default 3) |
 | `servingLabel` | The heading |
 | `showTimer` | Show the countdown (`true` or `false`) |
