@@ -36,7 +36,7 @@ describe('submit', () => {
 
 describe('remove', () => {
   const remove = (state: Orders, number: string, now: number) =>
-    ordersReducer(state, { type: 'remove', kind: 'coffee', number, now })
+    ordersReducer(state, { type: 'remove', number, now })
 
   const queued = () => {
     let state = submit(emptyOrders, 'coffee', '12', 0)
@@ -62,14 +62,18 @@ describe('remove', () => {
     expect(remove(submit(emptyOrders, 'coffee', '12', 0), '12', 5000).coffee).toEqual([])
   })
 
-  it('ignores a number that is not in the column', () => {
-    const state = queued()
-    expect(remove(state, '99', 5000)).toBe(state)
+  it('removes the number from both columns at once', () => {
+    let state = submit(emptyOrders, 'coffee', '12', 0)
+    state = submit(state, 'broodjies', '12', 1000)
+    state = submit(state, 'broodjies', '13', 2000)
+    state = remove(state, '12', 5000)
+    expect(state.coffee).toEqual([])
+    expect(state.broodjies).toEqual([{ number: '13', stageSince: 5000 }])
   })
 
-  it('only looks in the named column', () => {
-    const state = submit(emptyOrders, 'broodjies', '12', 0)
-    expect(remove(state, '12', 5000)).toBe(state)
+  it('ignores a number that is in neither column', () => {
+    const state = queued()
+    expect(remove(state, '99', 5000)).toBe(state)
   })
 })
 
@@ -110,24 +114,27 @@ describe('parseEntry', () => {
     expect(parseEntry('11234', prefixes, '3')).toEqual({ type: 'submit', kind: 'broodjies', number: '1234' })
   })
 
-  it('reads the remove prefix before the column prefix', () => {
-    expect(parseEntry('31234', prefixes, '3')).toEqual({ type: 'remove', kind: 'broodjies', number: '234' })
-    expect(parseEntry('301', prefixes, '3')).toEqual({ type: 'remove', kind: 'coffee', number: '1' })
+  it('reads the rest after the remove prefix as the order number', () => {
+    expect(parseEntry('31234', prefixes, '3')).toEqual({ type: 'remove', number: '1234' })
+    expect(parseEntry('301', prefixes, '3')).toEqual({ type: 'remove', number: '01' })
   })
 
   it('supports prefixes longer than one digit', () => {
-    expect(parseEntry('990155', { coffee: '01', broodjies: '02' }, '99')).toEqual({
+    expect(parseEntry('991234', { coffee: '01', broodjies: '02' }, '99')).toEqual({
       type: 'remove',
+      number: '1234',
+    })
+    expect(parseEntry('0155', { coffee: '01', broodjies: '02' }, '99')).toEqual({
+      type: 'submit',
       kind: 'coffee',
       number: '55',
     })
   })
 
-  it('returns null when the column prefix or the number is missing', () => {
+  it('returns null when the prefix or the number is missing', () => {
     expect(parseEntry('5123', prefixes, '3')).toBeNull()
     expect(parseEntry('0', prefixes, '3')).toBeNull()
     expect(parseEntry('3', prefixes, '3')).toBeNull()
-    expect(parseEntry('31', prefixes, '3')).toBeNull()
     expect(parseEntry('', prefixes, '3')).toBeNull()
   })
 })
