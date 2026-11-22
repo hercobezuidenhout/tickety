@@ -52,3 +52,20 @@ export const ordersReducer = (state: Orders, action: OrdersAction): Orders => {
     }
   }
 }
+
+export type Entry = { type: 'submit' | 'remove'; kind: Kind; number: string }
+
+// Reads what was typed. The remove prefix, when present, comes first and is
+// followed by the usual column prefix and order number.
+export const parseEntry = (
+  value: string,
+  prefixes: Record<Kind, string>,
+  removePrefix: string,
+): Entry | null => {
+  const type = value.startsWith(removePrefix) ? 'remove' : 'submit'
+  const code = type === 'remove' ? value.slice(removePrefix.length) : value
+  const kind = kinds.find((k) => code.startsWith(prefixes[k]))
+  if (!kind) return null
+  const number = code.slice(prefixes[kind].length)
+  return number ? { type, kind, number } : null
+}

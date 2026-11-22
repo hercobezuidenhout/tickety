@@ -35,7 +35,8 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
   const prefixesValid =
     draft.coffeePrefix !== '' &&
     draft.broodjiesPrefix !== '' &&
-    !prefixesClash(draft.coffeePrefix, draft.broodjiesPrefix)
+    draft.removePrefix !== '' &&
+    !prefixesClash(draft.coffeePrefix, draft.broodjiesPrefix, draft.removePrefix)
   const valid = Number.isFinite(stageSeconds) && stageSeconds > 0 && prefixesValid
 
   const save = (e: React.FormEvent) => {
@@ -100,7 +101,7 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
           </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <label className={label}>
             Left column prefix
             <input
@@ -119,9 +120,18 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
               onChange={(e) => setDraft({ ...draft, broodjiesPrefix: e.target.value.replace(/\D/g, '') })}
             />
           </label>
+          <label className={label}>
+            Remove prefix
+            <input
+              className={field}
+              inputMode="numeric"
+              value={draft.removePrefix}
+              onChange={(e) => setDraft({ ...draft, removePrefix: e.target.value.replace(/\D/g, '') })}
+            />
+          </label>
           {!prefixesValid && (
-            <p className="col-span-2 text-sm font-bold text-red-700">
-              Each prefix needs at least one digit, and neither can start with the other.
+            <p className="col-span-3 text-sm font-bold text-red-700">
+              Each prefix needs at least one digit, and none can start with another.
             </p>
           )}
         </div>

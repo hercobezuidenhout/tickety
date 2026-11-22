@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from 'react'
 import { clearSettings, defaultSettings, loadSettings, saveSettings, type Settings, type TicketSize } from './config'
 import Countdown from './Countdown'
 import Decor from './Decor'
-import { emptyOrders, kinds, ordersReducer, type Kind } from './orders'
+import { emptyOrders, kinds, ordersReducer, parseEntry, type Kind } from './orders'
 import SettingsDialog, { GearIcon } from './SettingsDialog'
 
 // Full class names so Tailwind can find them at build time.
@@ -60,27 +60,12 @@ function App() {
   // default prefixes 01234 is coffee 1234 and 11234 is broodjies 1234. New orders join the back
   // of that column's line. Typing the number on top restarts its countdown.
   // Typing a number that is already waiting in that column does nothing.
+  // Starting with the remove prefix (default 3) takes that order off its column
+  // instead, whether it is on top or still waiting, so 31234 removes 11234.
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const kind = kinds.find((k) => value.startsWith(prefixes[k]))
-    const number = kind ? value.slice(prefixes[kind].length) : ''
-    if (!kind || !number) {
-      setValue('')
-      return
-    }
-    dispatch({ type: 'submit', kind, number, now: Date.now() })
-    setValue('')
-  }
-
-  // Shift+Enter removes the typed order from its column, whether it is on top
-  // or still waiting.
-  const removeTyped = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Enter' || !e.shiftKey) return
-    e.preventDefault()
-    const kind = kinds.find((k) => value.startsWith(prefixes[k]))
-    if (kind) {
-      dispatch({ type: 'remove', kind, number: value.slice(prefixes[kind].length), now: Date.now() })
-    }
+    const entry = parseEntry(value, prefixes, config.removePrefix)
+    if (entry) dispatch({ ...entry, now: Date.now() })
     setValue('')
   }
 
@@ -154,7 +139,6 @@ function App() {
             inputMode="numeric"
             value={value}
             onChange={(e) => setValue(e.target.value.replace(/\D/g, ''))}
-            onKeyDown={removeTyped}
             onBlur={() => !settingsOpen && inputRef.current?.focus()}
           />
         </form>

@@ -11,7 +11,7 @@ The barista types the order number on a keypad and presses **Enter**. The number
 - In each column the first number is shown big at the top, with a countdown. The others wait below it in a list, in the order they were typed, with no countdown.
 - When the big number's countdown ends, it leaves the screen and the next one in that column moves up and starts its own countdown.
 - Type the big number again (with its prefix) to restart its countdown. Typing a number that is already waiting in that column does nothing.
-- To remove an order early, type it with its prefix and press **Shift+Enter**. This works for the big number and for waiting ones. If it was the big number, the next one moves up.
+- To remove an order early, type the remove prefix (default **3**) followed by the order exactly as you would normally type it, and press **Enter**. This works for the big number and for waiting ones. If it was the big number, the next one moves up. For broodjies order 234 (`1234`), type `31234`.
 - Only as many numbers as fit on screen are shown. The rest are counted under the column as **+N waiting**.
 
 ---
@@ -150,7 +150,8 @@ Edit `src/config.json`, then build again. The settings are built into the app.
 |---|---|
 | `stageSeconds` | How long each number stays on the big tile |
 | `coffeePrefix` | The digits that start a coffee order (default `0`) |
-| `broodjiesPrefix` | The digits that start a broodjies order (default `1`). Neither prefix can start with the other. |
+| `broodjiesPrefix` | The digits that start a broodjies order (default `1`). |
+| `removePrefix` | The digits typed in front of an order to remove it (default `3`). None of the three prefixes can start with another. |
 | `ticketSize` | `small`, `medium` or `large` (default `medium`) |
 | `ticketColumns` | How many tickets sit side by side inside each column, 1 to 4 (default 1) |
 | `coffeeLabel` | The title above the coffee column (default `Coffee`) |

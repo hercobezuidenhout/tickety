@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyOrders, ordersReducer, type Orders } from './orders'
+import { emptyOrders, ordersReducer, parseEntry, type Orders } from './orders'
 
 const submit = (state: Orders, kind: 'coffee' | 'broodjies', number: string, now: number) =>
   ordersReducer(state, { type: 'submit', kind, number, now })
@@ -99,5 +99,35 @@ describe('tick', () => {
     state = ordersReducer(state, { type: 'tick', now: 60_000, stageMs })
     expect(state.coffee).toEqual([])
     expect(state.broodjies).toEqual([{ number: '7', stageSince: 30_000 }])
+  })
+})
+
+describe('parseEntry', () => {
+  const prefixes = { coffee: '0', broodjies: '1' }
+
+  it('reads the column prefix and the order number', () => {
+    expect(parseEntry('01234', prefixes, '3')).toEqual({ type: 'submit', kind: 'coffee', number: '1234' })
+    expect(parseEntry('11234', prefixes, '3')).toEqual({ type: 'submit', kind: 'broodjies', number: '1234' })
+  })
+
+  it('reads the remove prefix before the column prefix', () => {
+    expect(parseEntry('31234', prefixes, '3')).toEqual({ type: 'remove', kind: 'broodjies', number: '234' })
+    expect(parseEntry('301', prefixes, '3')).toEqual({ type: 'remove', kind: 'coffee', number: '1' })
+  })
+
+  it('supports prefixes longer than one digit', () => {
+    expect(parseEntry('990155', { coffee: '01', broodjies: '02' }, '99')).toEqual({
+      type: 'remove',
+      kind: 'coffee',
+      number: '55',
+    })
+  })
+
+  it('returns null when the column prefix or the number is missing', () => {
+    expect(parseEntry('5123', prefixes, '3')).toBeNull()
+    expect(parseEntry('0', prefixes, '3')).toBeNull()
+    expect(parseEntry('3', prefixes, '3')).toBeNull()
+    expect(parseEntry('31', prefixes, '3')).toBeNull()
+    expect(parseEntry('', prefixes, '3')).toBeNull()
   })
 })

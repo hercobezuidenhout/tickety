@@ -10,6 +10,7 @@ export type Settings = {
   ticketColumns: number
   coffeePrefix: string
   broodjiesPrefix: string
+  removePrefix: string
   coffeeLabel: string
   broodjiesLabel: string
   showTimer: boolean
@@ -42,9 +43,9 @@ const flag = (value: unknown, fallback: boolean) =>
   typeof value === 'boolean' ? value : fallback
 
 // Prefixes are digits. Two prefixes clash when one starts with the other,
-// because a typed number could then belong to either column.
-export const prefixesClash = (a: string, b: string) =>
-  a.startsWith(b) || b.startsWith(a)
+// because a typed number could then belong to either of them.
+export const prefixesClash = (...prefixes: string[]) =>
+  prefixes.some((a, i) => prefixes.slice(i + 1).some((b) => a.startsWith(b) || b.startsWith(a)))
 
 const prefix = (value: unknown, fallback: string) =>
   typeof value === 'string' && /^\d+$/.test(value) ? value : fallback
@@ -58,13 +59,15 @@ const ticketColumns = (value: unknown, fallback: number) =>
 export const parseSettings = (raw: Raw): Settings => {
   const coffeePrefix = prefix(raw.coffeePrefix, '0')
   const broodjiesPrefix = prefix(raw.broodjiesPrefix, '1')
-  const clash = prefixesClash(coffeePrefix, broodjiesPrefix)
+  const removePrefix = prefix(raw.removePrefix, '3')
+  const clash = prefixesClash(coffeePrefix, broodjiesPrefix, removePrefix)
   return {
     stageSeconds: positiveNumber(raw.stageSeconds, 60),
     ticketSize: ticketSize(raw.ticketSize, 'medium'),
     ticketColumns: ticketColumns(raw.ticketColumns, 1),
     coffeePrefix: clash ? '0' : coffeePrefix,
     broodjiesPrefix: clash ? '1' : broodjiesPrefix,
+    removePrefix: clash ? '3' : removePrefix,
     coffeeLabel: text(raw.coffeeLabel, 'Coffee'),
     broodjiesLabel: text(raw.broodjiesLabel, 'Broodjies'),
     showTimer: flag(raw.showTimer, true),

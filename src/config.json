@@ -4,6 +4,7 @@
   "ticketColumns": 1,
   "coffeePrefix": "0",
   "broodjiesPrefix": "1",
+  "removePrefix": "3",
   "coffeeLabel": "Koffie",
   "broodjiesLabel": "Broodjies",
   "showTimer": true,
