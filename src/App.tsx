@@ -1,13 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { clearSettings, defaultSettings, loadSettings, saveSettings, type Settings, type TicketSize } from './config'
 import Decor from './Decor'
+import { emptyOrders, kinds, ordersReducer, type Kind } from './orders'
 import SettingsDialog, { GearIcon } from './SettingsDialog'
-
-type Order = { number: string; stageSince?: number }
-type Kind = 'coffee' | 'broodjies'
-type Orders = Record<Kind, Order[]>
-
-const kinds: Kind[] = ['coffee', 'broodjies']
 
 // Full class names so Tailwind can find them at build time.
 const ticketClasses: Record<TicketSize, { box: string; timer: string }> = {
@@ -15,12 +10,6 @@ const ticketClasses: Record<TicketSize, { box: string; timer: string }> = {
   medium: { box: 'h-32 text-7xl', timer: 'text-2xl' },
   large: { box: 'h-56 text-9xl', timer: 'text-4xl' },
 }
-
-// Stamp the order that is now first in line with the moment it reached the stage.
-const promote = (list: Order[], now: number): Order[] =>
-  list.length > 0 && list[0].stageSince === undefined
-    ? [{ ...list[0], stageSince: now }, ...list.slice(1)]
-    : list
 
 const formatMs = (ms: number) => {
   const secs = Math.max(0, Math.ceil(ms / 1000))
@@ -30,7 +19,7 @@ const formatMs = (ms: number) => {
 function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
-  const [orders, setOrders] = useState<Orders>({ coffee: [], broodjies: [] })
+  const [orders, dispatch] = useReducer(ordersReducer, emptyOrders)
   const [now, setNow] = useState(Date.now())
   const [config, setConfig] = useState<Settings>(loadSettings)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -65,18 +54,7 @@ function App() {
     const id = setInterval(() => {
       const now = Date.now()
       setNow(now)
-      setOrders((prev) => {
-        const advance = (list: Order[]) => {
-          const [hero, ...rest] = list
-          if (!hero || now < hero.stageSince! + stageMs) return list
-          return promote(rest, now)
-        }
-        const coffee = advance(prev.coffee)
-        const broodjies = advance(prev.broodjies)
-        return coffee === prev.coffee && broodjies === prev.broodjies
-          ? prev
-          : { coffee, broodjies }
-      })
+      dispatch({ type: 'tick', now, stageMs })
     }, 1000)
     return () => clearInterval(id)
   }, [stageMs])
@@ -95,14 +73,7 @@ function App() {
     }
     const now = Date.now()
     setNow(now)
-    setOrders((prev) => {
-      const list = prev[kind]
-      if (list[0]?.number === number) {
-        return { ...prev, [kind]: [{ ...list[0], stageSince: now }, ...list.slice(1)] }
-      }
-      if (list.some((o) => o.number === number)) return prev
-      return { ...prev, [kind]: promote([...list, { number }], now) }
-    })
+    dispatch({ type: 'submit', kind, number, now })
     setValue('')
   }
 
@@ -142,11 +113,11 @@ function App() {
                     style={{ backgroundColor: colors.accent, color: colors.accentText }}
                   >
                     {o.number}
-                    {i === 0 && config.showTimer && (
+                    {i === 0 && o.stageSince !== null && config.showTimer && (
                       <span
                         className={`absolute right-3 bottom-2 font-bold tabular-nums ${ticketClasses[config.ticketSize].timer}`}
                       >
-                        {formatMs(o.stageSince! + stageMs - now)}
+                        {formatMs(o.stageSince + stageMs - now)}
                       </span>
                     )}
                   </div>
