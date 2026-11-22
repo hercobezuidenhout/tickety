@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { config } from './config'
-import Decor, { Cup } from './Decor'
-
-const { stageMs, colors } = config
+import { clearSettings, defaultSettings, loadSettings, saveSettings, type Settings, type TicketSize } from './config'
+import Decor from './Decor'
+import SettingsDialog, { GearIcon } from './SettingsDialog'
 
 type Order = { number: string; stageSince?: number }
+type Kind = 'coffee' | 'broodjies'
+type Orders = Record<Kind, Order[]>
+
+const kinds: Kind[] = ['coffee', 'broodjies']
+
+// Full class names so Tailwind can find them at build time.
+const ticketClasses: Record<TicketSize, { box: string; timer: string }> = {
+  small: { box: 'h-24 text-5xl', timer: 'text-xl' },
+  medium: { box: 'h-32 text-7xl', timer: 'text-2xl' },
+  large: { box: 'h-56 text-9xl', timer: 'text-4xl' },
+}
 
 // Stamp the order that is now first in line with the moment it reached the stage.
 const promote = (list: Order[], now: number): Order[] =>
@@ -20,88 +30,128 @@ const formatMs = (ms: number) => {
 function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
-  const [orders, setOrders] = useState<Order[]>([])
+  const [orders, setOrders] = useState<Orders>({ coffee: [], broodjies: [] })
   const [now, setNow] = useState(Date.now())
+  const [config, setConfig] = useState<Settings>(loadSettings)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const { colors } = config
+  const stageMs = config.stageSeconds * 1000
+  const prefixes: Record<Kind, string> = {
+    coffee: config.coffeePrefix,
+    broodjies: config.broodjiesPrefix,
+  }
 
-  // Orders wait in line with no timer. Only the one on the big stage counts
-  // down. When it runs out it leaves the screen and the next one moves up.
+  const closeSettings = () => {
+    setSettingsOpen(false)
+    inputRef.current?.focus()
+  }
+
+  const saveConfig = (next: Settings) => {
+    saveSettings(next)
+    setConfig(next)
+    closeSettings()
+  }
+
+  const resetConfig = () => {
+    clearSettings()
+    setConfig(defaultSettings)
+    closeSettings()
+  }
+
+  // Each column is its own line. Orders wait with no timer. Only the one on
+  // top counts down. When it runs out it leaves the screen and the next one
+  // moves up.
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now()
       setNow(now)
       setOrders((prev) => {
-        const [hero, ...rest] = prev
-        if (!hero || now < hero.stageSince! + stageMs) return prev
-        return promote(rest, now)
+        const advance = (list: Order[]) => {
+          const [hero, ...rest] = list
+          if (!hero || now < hero.stageSince! + stageMs) return list
+          return promote(rest, now)
+        }
+        const coffee = advance(prev.coffee)
+        const broodjies = advance(prev.broodjies)
+        return coffee === prev.coffee && broodjies === prev.broodjies
+          ? prev
+          : { coffee, broodjies }
       })
     }, 1000)
     return () => clearInterval(id)
-  }, [])
+  }, [stageMs])
 
-  // New orders join the back of the line. Typing the number on the big stage
-  // restarts its countdown. Typing a number that is already waiting does nothing.
+  // The prefix picks the column and the rest is the order number, so with the
+  // default prefixes 01234 is coffee 1234 and 11234 is broodjies 1234. New orders join the back
+  // of that column's line. Typing the number on top restarts its countdown.
+  // Typing a number that is already waiting in that column does nothing.
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const number = value.trim()
-    if (!number) return
+    const kind = kinds.find((k) => value.startsWith(prefixes[k]))
+    const number = kind ? value.slice(prefixes[kind].length) : ''
+    if (!kind || !number) {
+      setValue('')
+      return
+    }
     const now = Date.now()
     setNow(now)
     setOrders((prev) => {
-      if (prev[0]?.number === number) {
-        return [{ ...prev[0], stageSince: now }, ...prev.slice(1)]
+      const list = prev[kind]
+      if (list[0]?.number === number) {
+        return { ...prev, [kind]: [{ ...list[0], stageSince: now }, ...list.slice(1)] }
       }
-      if (prev.some((o) => o.number === number)) return prev
-      return promote([...prev, { number }], now)
+      if (list.some((o) => o.number === number)) return prev
+      return { ...prev, [kind]: promote([...list, { number }], now) }
     })
     setValue('')
   }
 
-  const [hero, ...rest] = orders
-
   return (
     <div
-      className="relative flex h-screen cursor-none overflow-hidden p-12"
+      className="relative flex h-screen overflow-hidden p-12"
       style={{ backgroundColor: colors.background, color: colors.text }}
     >
       <Decor />
+      <button
+        type="button"
+        aria-label="Settings"
+        className="absolute right-1 bottom-13 z-10 h-10 w-10 cursor-pointer opacity-60 hover:opacity-100"
+        style={{ color: colors.text }}
+        onClick={() => setSettingsOpen(true)}
+      >
+        <GearIcon />
+      </button>
       <section className="relative flex-1">
-        <div className="mb-8 flex justify-center">
-          <h1
-            className="font-display flex items-center gap-4 rounded-full border-2 px-8 py-3 text-4xl font-bold"
-            style={{ backgroundColor: colors.background, borderColor: colors.border }}
-          >
-            <span className="h-12 w-12" style={{ color: colors.accent }}>
-              <Cup />
-            </span>
-            {config.servingLabel}
-          </h1>
-        </div>
-        {hero && (
-          <div
-            className="relative mb-4 rounded-lg px-6 py-12 text-center text-9xl font-extrabold"
-            style={{ backgroundColor: colors.accent, color: colors.accentText }}
-          >
-            {hero.number}
-            {config.showTimer && (
-              <span className="absolute right-4 bottom-3 text-4xl font-bold tabular-nums">
-                {formatMs(hero.stageSince! + stageMs - now)}
-              </span>
-            )}
-          </div>
-        )}
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: `repeat(${config.servingColumns}, minmax(0, 1fr))`,
-          }}
-        >
-          {rest.map((o) => (
-            <div
-              key={o.number}
-              className="relative rounded-lg px-2 py-4 text-center text-6xl font-extrabold"
-              style={{ backgroundColor: colors.accent, color: colors.accentText }}
-            >
-              {o.number}
+        <div className="grid grid-cols-2 gap-8">
+          {kinds.map((kind) => (
+            <div key={kind} className="flex flex-col gap-4 px-8">
+              <h1
+                className="font-display self-center rounded-full border-2 px-8 py-3 text-4xl font-bold"
+                style={{ backgroundColor: colors.background, borderColor: colors.border }}
+              >
+                {kind === 'coffee' ? config.coffeeLabel : config.broodjiesLabel}
+              </h1>
+              <div
+                className="grid gap-4"
+                style={{ gridTemplateColumns: `repeat(${config.ticketColumns}, minmax(0, 1fr))` }}
+              >
+                {orders[kind].map((o, i) => (
+                  <div
+                    key={o.number}
+                    className={`relative flex items-center justify-center rounded-lg px-2 text-center font-extrabold ${ticketClasses[config.ticketSize].box}`}
+                    style={{ backgroundColor: colors.accent, color: colors.accentText }}
+                  >
+                    {o.number}
+                    {i === 0 && config.showTimer && (
+                      <span
+                        className={`absolute right-3 bottom-2 font-bold tabular-nums ${ticketClasses[config.ticketSize].timer}`}
+                      >
+                        {formatMs(o.stageSince! + stageMs - now)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -121,10 +171,18 @@ function App() {
             inputMode="numeric"
             value={value}
             onChange={(e) => setValue(e.target.value.replace(/\D/g, ''))}
-            onBlur={() => inputRef.current?.focus()}
+            onBlur={() => !settingsOpen && inputRef.current?.focus()}
           />
         </form>
       </section>
+      {settingsOpen && (
+        <SettingsDialog
+          settings={config}
+          onSave={saveConfig}
+          onReset={resetConfig}
+          onClose={closeSettings}
+        />
+      )}
     </div>
   )
 }

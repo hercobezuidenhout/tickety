@@ -6,10 +6,11 @@ The barista types the order number on a keypad and presses **Enter**. The number
 
 ## How it works
 
-- Type a number on the keypad and press **Enter**. It appears under **Now serving**.
-- The first number in line is shown big at the top, with a countdown. The others wait in small tiles below it, in the order they were typed, with no countdown.
-- When the big number's countdown ends, it leaves the screen and the next one moves up and starts its own countdown.
-- Type the big number again to restart its countdown. Typing a number that is already waiting does nothing.
+- The screen has two equal columns. **Coffee** is on the left and **Broodjies** are on the right.
+- Start the number with the coffee prefix (default **0**) or the broodjies prefix (default **1**), then the order number, and press **Enter**. For order 1234, type `01234` for coffee or `11234` for broodjies. The same order number can be in both columns.
+- In each column the first number is shown big at the top, with a countdown. The others wait below it in a list, in the order they were typed, with no countdown.
+- When the big number's countdown ends, it leaves the screen and the next one in that column moves up and starts its own countdown.
+- Type the big number again (with its prefix) to restart its countdown. Typing a number that is already waiting in that column does nothing.
 
 ---
 
@@ -146,8 +147,12 @@ Edit `src/config.json`, then build again. The settings are built into the app.
 | Setting | What it does |
 |---|---|
 | `stageSeconds` | How long each number stays on the big tile |
-| `servingColumns` | How many small tiles fit in a row (default 3) |
-| `servingLabel` | The heading |
+| `coffeePrefix` | The digits that start a coffee order (default `0`) |
+| `broodjiesPrefix` | The digits that start a broodjies order (default `1`). Neither prefix can start with the other. |
+| `ticketSize` | `small`, `medium` or `large` (default `medium`) |
+| `ticketColumns` | How many tickets sit side by side inside each column, 1 to 4 (default 1) |
+| `coffeeLabel` | The title above the coffee column (default `Coffee`) |
+| `broodjiesLabel` | The title above the broodjies column (default `Broodjies`) |
 | `showTimer` | Show the countdown (`true` or `false`) |
 | `showInput` | Show the box where the typed number appears. The keypad still works if it's hidden. |
 | `colors` | `background`, `text`, `accent`, `accentText`, `border` (any CSS colour) |

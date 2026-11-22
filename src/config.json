@@ -1,7 +1,11 @@
 {
   "stageSeconds": 180,
-  "servingColumns": 3,
-  "servingLabel": "Bestelling Gereed!",
+  "ticketSize": "medium",
+  "ticketColumns": 1,
+  "coffeePrefix": "0",
+  "broodjiesPrefix": "1",
+  "coffeeLabel": "Koffie",
+  "broodjiesLabel": "Broodjies",
   "showTimer": true,
   "showInput": true,
   "colors": {
