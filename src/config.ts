@@ -1,4 +1,5 @@
 import json from './config.json'
+import { isHexColor } from './colors'
 
 export const ticketSizes = ['small', 'medium', 'large'] as const
 export type TicketSize = (typeof ticketSizes)[number]
@@ -8,11 +9,11 @@ export type Settings = {
   stageSeconds: number
   ticketSize: TicketSize
   ticketColumns: number
-  coffeePrefix: string
-  broodjiesPrefix: string
+  leftPrefix: string
+  rightPrefix: string
   removePrefix: string
-  coffeeLabel: string
-  broodjiesLabel: string
+  leftLabel: string
+  rightLabel: string
   showTimer: boolean
   showInput: boolean
   colors: {
@@ -39,6 +40,9 @@ const positiveNumber = (value: unknown, fallback: number) =>
     ? value
     : fallback
 
+const hexColor = (value: unknown, fallback: string) =>
+  isHexColor(value) ? value.toLowerCase() : fallback
+
 const flag = (value: unknown, fallback: boolean) =>
   typeof value === 'boolean' ? value : fallback
 
@@ -57,39 +61,57 @@ const ticketColumns = (value: unknown, fallback: number) =>
   Math.min(maxTicketColumns, Math.max(1, Math.floor(positiveNumber(value, fallback))))
 
 export const parseSettings = (raw: Raw): Settings => {
-  const coffeePrefix = prefix(raw.coffeePrefix, '0')
-  const broodjiesPrefix = prefix(raw.broodjiesPrefix, '1')
+  const leftPrefix = prefix(raw.leftPrefix, '0')
+  const rightPrefix = prefix(raw.rightPrefix, '1')
   const removePrefix = prefix(raw.removePrefix, '3')
-  const clash = prefixesClash(coffeePrefix, broodjiesPrefix, removePrefix)
+  const clash = prefixesClash(leftPrefix, rightPrefix, removePrefix)
   return {
     stageSeconds: positiveNumber(raw.stageSeconds, 60),
     ticketSize: ticketSize(raw.ticketSize, 'medium'),
     ticketColumns: ticketColumns(raw.ticketColumns, 1),
-    coffeePrefix: clash ? '0' : coffeePrefix,
-    broodjiesPrefix: clash ? '1' : broodjiesPrefix,
+    leftPrefix: clash ? '0' : leftPrefix,
+    rightPrefix: clash ? '1' : rightPrefix,
     removePrefix: clash ? '3' : removePrefix,
-    coffeeLabel: text(raw.coffeeLabel, 'Coffee'),
-    broodjiesLabel: text(raw.broodjiesLabel, 'Broodjies'),
+    leftLabel: text(raw.leftLabel, 'Coffee'),
+    rightLabel: text(raw.rightLabel, 'Broodjies'),
     showTimer: flag(raw.showTimer, true),
     showInput: flag(raw.showInput, true),
     colors: {
-      background: text(raw.colors?.background, '#e5e7eb'),
-      text: text(raw.colors?.text, '#0f172a'),
-      accent: text(raw.colors?.accent, '#34d399'),
-      accentText: text(raw.colors?.accentText, '#022c22'),
-      border: text(raw.colors?.border, '#9ca3af'),
+      background: hexColor(raw.colors?.background, '#e5e7eb'),
+      text: hexColor(raw.colors?.text, '#0f172a'),
+      accent: hexColor(raw.colors?.accent, '#34d399'),
+      accentText: hexColor(raw.colors?.accentText, '#022c22'),
+      border: hexColor(raw.colors?.border, '#9ca3af'),
     },
   }
 }
 
 export const defaultSettings = parseSettings(json)
 
+// Settings saved before the columns were renamed used coffee and broodjies in
+// their keys. Carry those values over to the left and right keys.
+const renamedKeys = {
+  coffeePrefix: 'leftPrefix',
+  broodjiesPrefix: 'rightPrefix',
+  coffeeLabel: 'leftLabel',
+  broodjiesLabel: 'rightLabel',
+} as const
+
+export const migrateSaved = (saved: Raw): Raw => {
+  const migrated = { ...saved }
+  for (const [old, current] of Object.entries(renamedKeys)) {
+    if (old in migrated && !(current in migrated)) migrated[current] = migrated[old]
+    delete migrated[old]
+  }
+  return migrated
+}
+
 // Defaults with whatever was saved on this device laid on top.
 export const loadSettings = (): Settings => {
   try {
     const stored = localStorage.getItem(storageKey)
     if (!stored) return defaultSettings
-    const saved: Raw = JSON.parse(stored)
+    const saved = migrateSaved(JSON.parse(stored))
     return parseSettings({
       ...defaultSettings,
       ...saved,

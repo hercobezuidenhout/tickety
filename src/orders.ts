@@ -1,5 +1,5 @@
-export type Kind = 'coffee' | 'broodjies'
-export const kinds: Kind[] = ['coffee', 'broodjies']
+export type Kind = 'left' | 'right'
+export const kinds: Kind[] = ['left', 'right']
 
 export type Order = { number: string; stageSince: number | null }
 export type Orders = Record<Kind, Order[]>
@@ -9,7 +9,7 @@ export type OrdersAction =
   | { type: 'remove'; number: string; now: number }
   | { type: 'tick'; now: number; stageMs: number }
 
-export const emptyOrders: Orders = { coffee: [], broodjies: [] }
+export const emptyOrders: Orders = { left: [], right: [] }
 
 // Stamp the order that is now first in line with the moment it reached the stage.
 const promote = (list: Order[], now: number): Order[] =>
@@ -43,18 +43,18 @@ export const ordersReducer = (state: Orders, action: OrdersAction): Orders => {
         const rest = list.filter((_, i) => i !== index)
         return index === 0 ? promote(rest, now) : rest
       }
-      const coffee = removeFrom(state.coffee)
-      const broodjies = removeFrom(state.broodjies)
-      return coffee === state.coffee && broodjies === state.broodjies
+      const left = removeFrom(state.left)
+      const right = removeFrom(state.right)
+      return left === state.left && right === state.right
         ? state
-        : { coffee, broodjies }
+        : { left, right }
     }
     case 'tick': {
-      const coffee = advance(state.coffee, action.now, action.stageMs)
-      const broodjies = advance(state.broodjies, action.now, action.stageMs)
-      return coffee === state.coffee && broodjies === state.broodjies
+      const left = advance(state.left, action.now, action.stageMs)
+      const right = advance(state.right, action.now, action.stageMs)
+      return left === state.left && right === state.right
         ? state
-        : { coffee, broodjies }
+        : { left, right }
     }
   }
 }

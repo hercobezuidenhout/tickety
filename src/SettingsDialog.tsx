@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { contrastRatio, isHexColor, minContrast } from './colors'
 import { maxTicketColumns, parseSettings, prefixesClash, ticketSizes, type Settings } from './config'
 
 export const GearIcon = () => (
@@ -15,9 +16,17 @@ type Props = {
   onClose: () => void
 }
 
+// Colours that sit on top of each other on screen.
+const colorPairs: { a: ColorKey; b: ColorKey; name: string }[] = [
+  { a: 'text', b: 'background', name: 'Text on background' },
+  { a: 'accentText', b: 'accent', name: 'Ticket text on ticket' },
+]
+
 const inElectron = navigator.userAgent.includes('Electron')
 
-const colorFields: { key: keyof Settings['colors']; label: string }[] = [
+type ColorKey = keyof Settings['colors']
+
+const colorFields: { key: ColorKey; label: string }[] = [
   { key: 'background', label: 'Background' },
   { key: 'text', label: 'Text' },
   { key: 'accent', label: 'Ticket' },
@@ -35,11 +44,18 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
 
   const stageSeconds = Number(draft.stageSeconds)
   const prefixesValid =
-    draft.coffeePrefix !== '' &&
-    draft.broodjiesPrefix !== '' &&
+    draft.leftPrefix !== '' &&
+    draft.rightPrefix !== '' &&
     draft.removePrefix !== '' &&
-    !prefixesClash(draft.coffeePrefix, draft.broodjiesPrefix, draft.removePrefix)
-  const valid = Number.isFinite(stageSeconds) && stageSeconds > 0 && prefixesValid
+    !prefixesClash(draft.leftPrefix, draft.rightPrefix, draft.removePrefix)
+  const colorsValid = colorFields.every(({ key }) => isHexColor(draft.colors[key]))
+  const valid = Number.isFinite(stageSeconds) && stageSeconds > 0 && prefixesValid && colorsValid
+  const lowContrast = colorPairs.filter(
+    ({ a, b }) =>
+      isHexColor(draft.colors[a]) &&
+      isHexColor(draft.colors[b]) &&
+      contrastRatio(draft.colors[a], draft.colors[b]) < minContrast,
+  )
 
   const save = (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,8 +125,8 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
             <input
               className={field}
               inputMode="numeric"
-              value={draft.coffeePrefix}
-              onChange={(e) => setDraft({ ...draft, coffeePrefix: e.target.value.replace(/\D/g, '') })}
+              value={draft.leftPrefix}
+              onChange={(e) => setDraft({ ...draft, leftPrefix: e.target.value.replace(/\D/g, '') })}
             />
           </label>
           <label className={label}>
@@ -118,8 +134,8 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
             <input
               className={field}
               inputMode="numeric"
-              value={draft.broodjiesPrefix}
-              onChange={(e) => setDraft({ ...draft, broodjiesPrefix: e.target.value.replace(/\D/g, '') })}
+              value={draft.rightPrefix}
+              onChange={(e) => setDraft({ ...draft, rightPrefix: e.target.value.replace(/\D/g, '') })}
             />
           </label>
           <label className={label}>
@@ -143,16 +159,16 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
             Left column title
             <input
               className={field}
-              value={draft.coffeeLabel}
-              onChange={(e) => setDraft({ ...draft, coffeeLabel: e.target.value })}
+              value={draft.leftLabel}
+              onChange={(e) => setDraft({ ...draft, leftLabel: e.target.value })}
             />
           </label>
           <label className={label}>
             Right column title
             <input
               className={field}
-              value={draft.broodjiesLabel}
-              onChange={(e) => setDraft({ ...draft, broodjiesLabel: e.target.value })}
+              value={draft.rightLabel}
+              onChange={(e) => setDraft({ ...draft, rightLabel: e.target.value })}
             />
           </label>
         </div>
@@ -179,24 +195,43 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
         </div>
 
         <fieldset className="grid grid-cols-2 gap-4">
-          <legend className="mb-2 text-sm font-bold">Colours (any CSS colour)</legend>
-          {colorFields.map(({ key, label: name }) => (
-            <label key={key} className={label}>
-              {name}
-              <span className="flex items-center gap-2">
-                <span
-                  className="h-10 w-10 shrink-0 rounded-lg border-2 border-gray-400"
-                  style={{ backgroundColor: draft.colors[key] }}
-                />
-                <input
-                  className={field}
-                  value={draft.colors[key]}
-                  onChange={(e) =>
-                    setDraft({ ...draft, colors: { ...draft.colors, [key]: e.target.value } })
-                  }
-                />
-              </span>
-            </label>
+          <legend className="mb-2 text-sm font-bold">Colours</legend>
+          {colorFields.map(({ key, label: name }) => {
+            const color = draft.colors[key]
+            const setColor = (value: string) =>
+              setDraft({ ...draft, colors: { ...draft.colors, [key]: value } })
+            return (
+              <label key={key} className={label}>
+                {name}
+                <span className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label={`${name} colour picker`}
+                    className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border-2 border-gray-400 bg-white p-0.5"
+                    value={isHexColor(color) ? color.toLowerCase() : '#000000'}
+                    onChange={(e) => setColor(e.target.value)}
+                  />
+                  <input
+                    className={isHexColor(color) ? field : field.replace('border-gray-400', 'border-red-700')}
+                    aria-invalid={!isHexColor(color)}
+                    maxLength={7}
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                  />
+                </span>
+              </label>
+            )
+          })}
+          {!colorsValid && (
+            <p className="col-span-2 text-sm font-bold text-red-700">
+              Colours must be written as # followed by six digits or letters A to F, like #34d399.
+            </p>
+          )}
+          {lowContrast.map(({ a, b, name }) => (
+            <p key={a} className="col-span-2 text-sm font-bold text-amber-700">
+              {name} may be hard to read: contrast is {contrastRatio(draft.colors[a], draft.colors[b]).toFixed(1)}:1
+              and should be at least {minContrast}:1.
+            </p>
           ))}
         </fieldset>
 

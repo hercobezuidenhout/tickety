@@ -25,8 +25,8 @@ function App() {
   const stageMs = config.stageSeconds * 1000
   const maxVisible = visibleRows[config.ticketSize] * config.ticketColumns
   const prefixes: Record<Kind, string> = {
-    coffee: config.coffeePrefix,
-    broodjies: config.broodjiesPrefix,
+    left: config.leftPrefix,
+    right: config.rightPrefix,
   }
 
   const closeSettings = () => {
@@ -57,12 +57,12 @@ function App() {
   }, [stageMs])
 
   // The prefix picks the column and the rest is the order number, so with the
-  // default prefixes 01234 is coffee 1234 and 11234 is broodjies 1234. New orders join the back
+  // default prefixes 01234 is left column 1234 and 11234 is right column 1234. New orders join the back
   // of that column's line. Typing the number on top restarts its countdown.
   // Typing a number that is already waiting in that column does nothing.
   // Starting with the remove prefix (default 3) takes that order number off
   // both columns instead, whether it is on top or still waiting, so 31234
-  // removes 1234 from coffee and broodjies.
+  // removes 1234 from both columns.
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     const entry = parseEntry(value, prefixes, config.removePrefix)
@@ -93,7 +93,7 @@ function App() {
                 className="font-display self-center rounded-full border-2 px-8 py-3 text-4xl font-bold"
                 style={{ backgroundColor: colors.background, borderColor: colors.border }}
               >
-                {kind === 'coffee' ? config.coffeeLabel : config.broodjiesLabel}
+                {kind === 'left' ? config.leftLabel : config.rightLabel}
               </h1>
               <div
                 className="grid gap-4"
