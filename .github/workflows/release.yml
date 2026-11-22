@@ -61,6 +61,10 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
+      - run: npm test
+
       # Make package.json carry the release version so installer names and
       # .deb metadata match the tag. Not committed here; the release job does that.
       - run: npm version "${{ needs.version.outputs.version }}" --no-git-tag-version --allow-same-version
