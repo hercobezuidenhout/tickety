@@ -15,6 +15,8 @@ type Props = {
   onClose: () => void
 }
 
+const inElectron = navigator.userAgent.includes('Electron')
+
 const colorFields: { key: keyof Settings['colors']; label: string }[] = [
   { key: 'background', label: 'Background' },
   { key: 'text', label: 'Text' },
@@ -199,13 +201,24 @@ export default function SettingsDialog({ settings, onSave, onReset, onClose }: P
         </fieldset>
 
         <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            className="rounded-lg border-2 border-gray-400 px-4 py-2 font-bold"
-            onClick={onReset}
-          >
-            Reset to defaults
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              className="rounded-lg border-2 border-gray-400 px-4 py-2 font-bold"
+              onClick={onReset}
+            >
+              Reset to defaults
+            </button>
+            {inElectron && (
+              <button
+                type="button"
+                className="rounded-lg border-2 border-red-700 px-4 py-2 font-bold text-red-700"
+                onClick={() => window.close()}
+              >
+                Quit Tickety
+              </button>
+            )}
+          </div>
           <div className="flex gap-3">
             <button
               type="button"
