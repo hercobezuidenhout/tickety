@@ -6,6 +6,7 @@ export type Orders = Record<Kind, Order[]>
 
 export type OrdersAction =
   | { type: 'submit'; kind: Kind; number: string; now: number }
+  | { type: 'remove'; kind: Kind; number: string; now: number }
   | { type: 'tick'; now: number; stageMs: number }
 
 export const emptyOrders: Orders = { coffee: [], broodjies: [] }
@@ -33,6 +34,14 @@ export const ordersReducer = (state: Orders, action: OrdersAction): Orders => {
       }
       if (list.some((o) => o.number === number)) return state
       return { ...state, [kind]: promote([...list, { number, stageSince: null }], now) }
+    }
+    case 'remove': {
+      const { kind, number, now } = action
+      const list = state[kind]
+      const index = list.findIndex((o) => o.number === number)
+      if (index === -1) return state
+      const rest = list.filter((_, i) => i !== index)
+      return { ...state, [kind]: index === 0 ? promote(rest, now) : rest }
     }
     case 'tick': {
       const coffee = advance(state.coffee, action.now, action.stageMs)

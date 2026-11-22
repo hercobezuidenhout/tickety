@@ -11,6 +11,8 @@ The barista types the order number on a keypad and presses **Enter**. The number
 - In each column the first number is shown big at the top, with a countdown. The others wait below it in a list, in the order they were typed, with no countdown.
 - When the big number's countdown ends, it leaves the screen and the next one in that column moves up and starts its own countdown.
 - Type the big number again (with its prefix) to restart its countdown. Typing a number that is already waiting in that column does nothing.
+- To remove an order early, type it with its prefix and press **Shift+Enter**. This works for the big number and for waiting ones. If it was the big number, the next one moves up.
+- Only as many numbers as fit on screen are shown. The rest are counted under the column as **+N waiting**.
 
 ---
 

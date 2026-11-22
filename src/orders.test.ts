@@ -34,6 +34,45 @@ describe('submit', () => {
   })
 })
 
+describe('remove', () => {
+  const remove = (state: Orders, number: string, now: number) =>
+    ordersReducer(state, { type: 'remove', kind: 'coffee', number, now })
+
+  const queued = () => {
+    let state = submit(emptyOrders, 'coffee', '12', 0)
+    state = submit(state, 'coffee', '13', 1000)
+    return submit(state, 'coffee', '14', 2000)
+  }
+
+  it('promotes the next order when the top one is removed', () => {
+    expect(remove(queued(), '12', 5000).coffee).toEqual([
+      { number: '13', stageSince: 5000 },
+      { number: '14', stageSince: null },
+    ])
+  })
+
+  it('cancels a waiting order without touching the top timer', () => {
+    expect(remove(queued(), '13', 5000).coffee).toEqual([
+      { number: '12', stageSince: 0 },
+      { number: '14', stageSince: null },
+    ])
+  })
+
+  it('empties the column when the only order is removed', () => {
+    expect(remove(submit(emptyOrders, 'coffee', '12', 0), '12', 5000).coffee).toEqual([])
+  })
+
+  it('ignores a number that is not in the column', () => {
+    const state = queued()
+    expect(remove(state, '99', 5000)).toBe(state)
+  })
+
+  it('only looks in the named column', () => {
+    const state = submit(emptyOrders, 'broodjies', '12', 0)
+    expect(remove(state, '12', 5000)).toBe(state)
+  })
+})
+
 describe('tick', () => {
   const stageMs = 60_000
 

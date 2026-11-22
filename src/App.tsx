@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { clearSettings, defaultSettings, loadSettings, saveSettings, type Settings, type TicketSize } from './config'
+import Countdown from './Countdown'
 import Decor from './Decor'
 import { emptyOrders, kinds, ordersReducer, type Kind } from './orders'
 import SettingsDialog, { GearIcon } from './SettingsDialog'
@@ -11,20 +12,18 @@ const ticketClasses: Record<TicketSize, { box: string; timer: string }> = {
   large: { box: 'h-56 text-9xl', timer: 'text-4xl' },
 }
 
-const formatMs = (ms: number) => {
-  const secs = Math.max(0, Math.ceil(ms / 1000))
-  return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
-}
+// Rows of tickets that fit on screen for each ticket size.
+const visibleRows: Record<TicketSize, number> = { small: 6, medium: 5, large: 3 }
 
 function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
   const [orders, dispatch] = useReducer(ordersReducer, emptyOrders)
-  const [now, setNow] = useState(Date.now())
   const [config, setConfig] = useState<Settings>(loadSettings)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { colors } = config
   const stageMs = config.stageSeconds * 1000
+  const maxVisible = visibleRows[config.ticketSize] * config.ticketColumns
   const prefixes: Record<Kind, string> = {
     coffee: config.coffeePrefix,
     broodjies: config.broodjiesPrefix,
@@ -52,9 +51,7 @@ function App() {
   // moves up.
   useEffect(() => {
     const id = setInterval(() => {
-      const now = Date.now()
-      setNow(now)
-      dispatch({ type: 'tick', now, stageMs })
+      dispatch({ type: 'tick', now: Date.now(), stageMs })
     }, 1000)
     return () => clearInterval(id)
   }, [stageMs])
@@ -71,9 +68,19 @@ function App() {
       setValue('')
       return
     }
-    const now = Date.now()
-    setNow(now)
-    dispatch({ type: 'submit', kind, number, now })
+    dispatch({ type: 'submit', kind, number, now: Date.now() })
+    setValue('')
+  }
+
+  // Shift+Enter removes the typed order from its column, whether it is on top
+  // or still waiting.
+  const removeTyped = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter' || !e.shiftKey) return
+    e.preventDefault()
+    const kind = kinds.find((k) => value.startsWith(prefixes[k]))
+    if (kind) {
+      dispatch({ type: 'remove', kind, number: value.slice(prefixes[kind].length), now: Date.now() })
+    }
     setValue('')
   }
 
@@ -106,7 +113,7 @@ function App() {
                 className="grid gap-4"
                 style={{ gridTemplateColumns: `repeat(${config.ticketColumns}, minmax(0, 1fr))` }}
               >
-                {orders[kind].map((o, i) => (
+                {orders[kind].slice(0, maxVisible).map((o, i) => (
                   <div
                     key={o.number}
                     className={`relative flex items-center justify-center rounded-lg px-2 text-center font-extrabold ${ticketClasses[config.ticketSize].box}`}
@@ -114,15 +121,20 @@ function App() {
                   >
                     {o.number}
                     {i === 0 && o.stageSince !== null && config.showTimer && (
-                      <span
+                      <Countdown
+                        since={o.stageSince}
+                        durationMs={stageMs}
                         className={`absolute right-3 bottom-2 font-bold tabular-nums ${ticketClasses[config.ticketSize].timer}`}
-                      >
-                        {formatMs(o.stageSince + stageMs - now)}
-                      </span>
+                      />
                     )}
                   </div>
                 ))}
               </div>
+              {orders[kind].length > maxVisible && (
+                <p className="font-display self-center text-3xl font-bold" aria-live="polite">
+                  +{orders[kind].length - maxVisible} waiting
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -142,6 +154,7 @@ function App() {
             inputMode="numeric"
             value={value}
             onChange={(e) => setValue(e.target.value.replace(/\D/g, ''))}
+            onKeyDown={removeTyped}
             onBlur={() => !settingsOpen && inputRef.current?.focus()}
           />
         </form>
