@@ -52,12 +52,6 @@
         "AppImage"
       ],
       "category": "Utility"
-    },
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.business",
-      "identity": "-",
-      "hardenedRuntime": false
     }
   },
   "dependencies": {

@@ -1,8 +1,7 @@
 name: Release
 
 # Manually triggered. Each run bumps the minor version (first release is 0.1.0),
-# builds the desktop app for Raspberry Pi (linux arm64), Linux PCs (x64) and macOS
-# (arm64), tags
+# builds the desktop app for Raspberry Pi (linux arm64) and Linux PCs (x64), tags
 # the commit, and publishes a GitHub Release with the installers attached.
 on:
   workflow_dispatch:
@@ -46,10 +45,6 @@ jobs:
             name: linux-x64
             builder_args: --linux deb AppImage --x64
             system_fpm: "false"
-          - os: macos-latest
-            name: macos-arm64
-            builder_args: --mac dmg --arm64
-            system_fpm: "false"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +78,6 @@ jobs:
         run: npx electron-builder ${{ matrix.builder_args }} --publish never
         env:
           USE_SYSTEM_FPM: ${{ matrix.system_fpm }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false" # macOS build is unsigned
 
       - uses: actions/upload-artifact@v4
         with:
@@ -91,7 +85,6 @@ jobs:
           path: |
             release/*.deb
             release/*.AppImage
-            release/*.dmg
           if-no-files-found: error
 
   release:

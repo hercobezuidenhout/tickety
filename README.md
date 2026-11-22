@@ -120,23 +120,9 @@ After it restarts, Tickety should open on its own.
 | Problem | Try this |
 |---|---|
 | Numbers don't show when I type | Press **Num Lock** on the keypad. Make sure the keypad is plugged in. |
-| I can't close it | Press **Alt + F4**. |
+| I can't close it | Click the gear icon, then **Quit Tickety**. Or press **Alt + F4**. |
 | The screen goes black after a while | Do "Stop the screen from going to sleep" above. |
 | It doesn't start after a restart | Do the "Start Tickety automatically" step again, then restart. |
-
----
-
-## Mac
-
-A Mac version is published too (`mac-arm64.dmg`, for Apple Silicon Macs). Open the file and drag Tickety into **Applications**.
-
-The first time, macOS will say it can't verify the app. This is normal. Go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**.
-
-If macOS says the app is "damaged", paste this in Terminal and try again:
-
-```
-xattr -cr /Applications/Tickety.app
-```
 
 ---
 
@@ -173,6 +159,6 @@ npm run desktop    # builds, then opens it as a desktop app
 1. Push your changes to GitHub.
 2. Go to **Actions → Release → Run workflow**.
 
-Each run adds one to the minor version (`0.1.0`, `0.2.0`, `0.3.0`, ...), builds the Raspberry Pi and Mac apps, and publishes them as a GitHub Release. The version in `package.json` is updated to match.
+Each run adds one to the minor version (`0.1.0`, `0.2.0`, `0.3.0`, ...), builds the Raspberry Pi and Linux PC apps, and publishes them as a GitHub Release. The version in `package.json` is updated to match.
 
-The release workflow builds for the Raspberry Pi (64-bit ARM), Linux PCs (Intel / AMD) and Apple Silicon Macs.
+The release workflow builds for the Raspberry Pi (64-bit ARM) and Linux PCs (Intel / AMD).
