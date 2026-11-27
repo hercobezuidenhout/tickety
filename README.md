@@ -22,6 +22,12 @@ You need a Raspberry Pi 3, 4 or 5 running the **64-bit** Raspberry Pi OS (with t
 
 > **Check it's 64-bit:** open **Terminal** and type `uname -m`. If it says `aarch64`, you're good.
 
+### 0. Quick Install
+
+```
+wget -O /tmp/tickety.deb https://github.com/hercobezuidenhout/tickety/releases/download/v0.8.0/Tickety-0.8.0-linux-arm64.deb && sudo apt install -y /tmp/tickety.deb
+```
+
 ### 1. Download
 
 1. On the Pi, open the web browser and go to
